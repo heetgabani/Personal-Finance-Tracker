@@ -21,6 +21,6 @@ A simple and user-friendly Personal Finance Tracker built with Python and Tkinte
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/personal-finance-tracker.git
+   git clone git@github.com:heetgabani/Personal-Finance-Tracker.git
    cd personal-finance-tracker
    python3 app.py
