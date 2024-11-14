@@ -23,3 +23,4 @@ A simple and user-friendly Personal Finance Tracker built with Python and Tkinte
    ```bash
    git clone https://github.com/your-username/personal-finance-tracker.git
    cd personal-finance-tracker
+   python3 app.py
