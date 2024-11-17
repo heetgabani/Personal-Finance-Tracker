@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import csv
+from tkcalendar import DateEntry
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import datetime
@@ -42,26 +43,18 @@ class FinanceTrackerApp:
         )
         self.category_menu.grid(row=0, column=5, padx=5)
 
-        tk.Label(input_frame, text="Month:").grid(row=0, column=6, padx=5)
-        self.month_var = tk.StringVar(value=datetime.now().strftime("%B"))  # Default to current month
-        self.month_menu = ttk.Combobox(
-            input_frame,
-            textvariable=self.month_var,
-            values=[
-                "January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December",
-            ],
-        )
-        self.month_menu.grid(row=0, column=7, padx=5)
+        tk.Label(input_frame, text="Date:").grid(row=0, column=6, padx=5)
+        self.date_picker = DateEntry(input_frame, date_pattern="yyyy-mm-dd")
+        self.date_picker.grid(row=0, column=7, padx=5)
 
         tk.Button(input_frame, text="Add Transaction", command=self.add_transaction).grid(row=0, column=8, padx=5)
 
         # Transaction Table
-        self.tree = ttk.Treeview(self.root, columns=("Description", "Amount", "Category", "Month"), show="headings")
+        self.tree = ttk.Treeview(self.root, columns=("Description", "Amount", "Category", "Date"), show="headings")
         self.tree.heading("Description", text="Description")
         self.tree.heading("Amount", text="Amount")
         self.tree.heading("Category", text="Category")
-        self.tree.heading("Month", text="Month")
+        self.tree.heading("Date", text="Date")
         self.tree.pack(fill=tk.BOTH, expand=True, pady=10)
 
         # Budget and Summary
@@ -101,19 +94,18 @@ class FinanceTrackerApp:
             return
 
         category = self.category_var.get()
-        month = self.month_var.get()
+        date = self.date_picker.get_date()
 
-        if not desc or not category or category == "Select" or month == "Select":
+        if not desc or not category or category == "Select":
             messagebox.showerror("Invalid Input", "All fields are required.")
             return
 
-        if sum(t["amount"] for t in self.transactions if t["month"] == month) + amount > self.budget:
+        if sum(t["amount"] for t in self.transactions if t["date"] == date) + amount > self.budget:
             messagebox.showwarning("Budget Exceeded", "This transaction exceeds your monthly budget.")
 
-        self.transactions.append({"description": desc, "amount": amount, "category": category, "month": month})
+        self.transactions.append({"description": desc, "amount": amount, "category": category, "date": date})
         self.update_table()
         self.clear_inputs()
-
 
     def update_table(self):
         # Clear the table
@@ -123,7 +115,7 @@ class FinanceTrackerApp:
         # Populate with updated data
         for transaction in self.transactions:
             self.tree.insert(
-                "", "end", values=(transaction["description"], transaction["amount"], transaction["category"], transaction["month"])
+                "", "end", values=(transaction["description"], transaction["amount"], transaction["category"], transaction["date"].strftime("%d-%m-%Y"))
             )
 
     def set_budget(self):
@@ -137,7 +129,7 @@ class FinanceTrackerApp:
         self.desc_entry.delete(0, tk.END)
         self.amount_entry.delete(0, tk.END)
         self.category_var.set("Select")
-        self.month_var.set(datetime.now().strftime("%B"))
+        self.date_picker.set_date(datetime.now())
 
     def download_csv(self):
         if not self.transactions:
@@ -155,28 +147,28 @@ class FinanceTrackerApp:
         try:
             with open(file_path, mode="w", newline="", encoding="utf-8") as file:
                 writer = csv.writer(file)
-                writer.writerow(["Description", "Amount", "Category", "Month"])
+                writer.writerow(["Description", "Amount", "Category", "Date"])
                 for transaction in self.transactions:
-                    writer.writerow([transaction["description"], transaction["amount"], transaction["category"], transaction["month"]])
+                    writer.writerow([transaction["description"], transaction["amount"], transaction["category"], transaction["date"].strftime("%d-%m-%Y")])
 
             messagebox.showinfo("Success", f"Transactions exported successfully to {file_path}")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save CSV: {e}")
 
     def visualize_spending(self):
-        selected_month = self.month_var.get()
+        selected_date = self.date_picker.get_date()
 
-        # Filter transactions by the selected month
-        month_transactions = [t for t in self.transactions if t["month"] == selected_month]
+        # Filter transactions by the selected date
+        date_transactions = [t for t in self.transactions if t["date"] == selected_date]
 
-        if not month_transactions:
-            messagebox.showinfo("No Data", f"No transactions found for {selected_month}.")
+        if not date_transactions:
+            messagebox.showinfo("No Data", f"No transactions found for {selected_date}.")
             return
 
         # Group expenses by category
         categories = {}
         total_expense = 0  # To calculate total expense
-        for transaction in month_transactions:
+        for transaction in date_transactions:
             categories[transaction["category"]] = categories.get(transaction["category"], 0) + transaction["amount"]
             total_expense += transaction["amount"]
 
@@ -192,8 +184,8 @@ class FinanceTrackerApp:
         canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         canvas.draw()
 
-        # Display total expense for the month
-        total_label = tk.Label(self.graph_area, text=f"Total Expense for {selected_month}: {total_expense:.2f}", font=("Arial", 12, "bold"))
+        # Display total expense for the day
+        total_label = tk.Label(self.graph_area, text=f"Total Expense for {selected_date.strftime('%d-%m-%Y')}: {total_expense:.2f}", font=("Arial", 12, "bold"))
         total_label.pack(pady=10)
 
 if __name__ == "__main__":
