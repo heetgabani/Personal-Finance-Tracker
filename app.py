@@ -161,7 +161,7 @@ class FinanceTrackerApp:
         pass
 
     def visualize_monthly_expenses(self):
-        # Group transactions by month and category
+    # Group transactions by month and category
         monthly_expenses = {}
         for transaction in self.transactions:
             month = transaction["date"].strftime("%B")
@@ -175,15 +175,39 @@ class FinanceTrackerApp:
 
         data = {cat: [monthly_expenses.get(month, {}).get(cat, 0) for month in months] for cat in categories}
 
-        # Plot the data
-        fig, ax = plt.subplots(figsize=(10, 6))
-        for category, values in data.items():
-            ax.bar(months, values, label=category)
+        # Determine the maximum expense amount for color scaling
+        max_expense = max(sum(values) for values in data.values())
+        cmap = get_cmap("coolwarm")  # Use a color map for the gradient
+        norm = Normalize(vmin=0, vmax=max_expense)
 
+        # Plot the data with colors based on values
+        fig, ax = plt.subplots(figsize=(10, 6))
+        bar_positions = range(len(months))
+        bar_width = 0.8 / len(categories)  # Adjust width to avoid overlap
+
+        for idx, (category, values) in enumerate(data.items()):
+            bar_colors = [cmap(norm(value)) for value in values]
+            ax.bar(
+                [pos + idx * bar_width for pos in bar_positions],
+                values,
+                bar_width,
+                color=bar_colors,
+                label=category,
+                edgecolor="black",
+            )
+
+        # Add legend, labels, and title
         ax.set_title("Monthly Expenses by Category")
+        ax.set_xticks([pos + bar_width * (len(categories) / 2) for pos in bar_positions])
+        ax.set_xticklabels(months)
         ax.set_xlabel("Month")
         ax.set_ylabel("Amount")
         ax.legend()
+
+        # Add color bar for scale reference
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])
+        plt.colorbar(sm, ax=ax, label="Expense Amount")
 
         # Display the bar chart in Tkinter
         for widget in self.graph_area.winfo_children():
