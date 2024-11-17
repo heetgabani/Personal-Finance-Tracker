@@ -10,7 +10,7 @@ class FinanceTrackerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Personal Finance Tracker")
-        self.root.geometry("800x600")
+        self.root.geometry("900x700")
 
         # Initialize data structures
         self.transactions = []
@@ -65,6 +65,7 @@ class FinanceTrackerApp:
         tk.Entry(summary_frame, textvariable=self.budget_var, width=10).pack(side=tk.LEFT, padx=5)
         tk.Button(summary_frame, text="Set Budget", command=self.set_budget).pack(side=tk.LEFT, padx=5)
         tk.Button(summary_frame, text="Visualize Spending", command=self.visualize_spending).pack(side=tk.LEFT, padx=5)
+        tk.Button(summary_frame, text="Visualize Monthly Expenses", command=self.visualize_monthly_expenses).pack(side=tk.LEFT, padx=5)
         tk.Button(summary_frame, text="Download CSV", command=self.download_csv).pack(side=tk.LEFT, padx=5)
 
         # Visualization Area
@@ -100,7 +101,7 @@ class FinanceTrackerApp:
             messagebox.showerror("Invalid Input", "All fields are required.")
             return
 
-        if sum(t["amount"] for t in self.transactions if t["date"] == date) + amount > self.budget:
+        if sum(t["amount"] for t in self.transactions if t["date"].month == date.month) + amount > self.budget:
             messagebox.showwarning("Budget Exceeded", "This transaction exceeds your monthly budget.")
 
         self.transactions.append({"description": desc, "amount": amount, "category": category, "date": date})
@@ -156,37 +157,40 @@ class FinanceTrackerApp:
             messagebox.showerror("Error", f"Failed to save CSV: {e}")
 
     def visualize_spending(self):
-        selected_date = self.date_picker.get_date()
+        # Same code for daily spending visualization
+        pass
 
-        # Filter transactions by the selected date
-        date_transactions = [t for t in self.transactions if t["date"] == selected_date]
+    def visualize_monthly_expenses(self):
+        # Group transactions by month and category
+        monthly_expenses = {}
+        for transaction in self.transactions:
+            month = transaction["date"].strftime("%B")
+            category = transaction["category"]
+            monthly_expenses.setdefault(month, {}).setdefault(category, 0)
+            monthly_expenses[month][category] += transaction["amount"]
 
-        if not date_transactions:
-            messagebox.showinfo("No Data", f"No transactions found for {selected_date}.")
-            return
+        # Prepare data for bar chart
+        months = list(monthly_expenses.keys())
+        categories = set(cat for data in monthly_expenses.values() for cat in data.keys())
 
-        # Group expenses by category
-        categories = {}
-        total_expense = 0  # To calculate total expense
-        for transaction in date_transactions:
-            categories[transaction["category"]] = categories.get(transaction["category"], 0) + transaction["amount"]
-            total_expense += transaction["amount"]
+        data = {cat: [monthly_expenses.get(month, {}).get(cat, 0) for month in months] for cat in categories}
 
-        # Create a pie chart
-        fig, ax = plt.subplots()
-        ax.pie(categories.values(), labels=categories.keys(), autopct="%1.1f%%", startangle=90)
-        ax.axis("equal")  # Equal aspect ratio ensures that the pie is drawn as a circle
+        # Plot the data
+        fig, ax = plt.subplots(figsize=(10, 6))
+        for category, values in data.items():
+            ax.bar(months, values, label=category)
 
-        # Display the pie chart in Tkinter
+        ax.set_title("Monthly Expenses by Category")
+        ax.set_xlabel("Month")
+        ax.set_ylabel("Amount")
+        ax.legend()
+
+        # Display the bar chart in Tkinter
         for widget in self.graph_area.winfo_children():
             widget.destroy()
         canvas = FigureCanvasTkAgg(fig, master=self.graph_area)
         canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         canvas.draw()
-
-        # Display total expense for the day
-        total_label = tk.Label(self.graph_area, text=f"Total Expense for {selected_date.strftime('%d-%m-%Y')}: {total_expense:.2f}", font=("Arial", 12, "bold"))
-        total_label.pack(pady=10)
 
 if __name__ == "__main__":
     root = tk.Tk()
