@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import datetime
 
-
 class FinanceTrackerApp:
     def __init__(self, root):
         self.root = root
@@ -80,6 +79,10 @@ class FinanceTrackerApp:
         self.graph_area.pack(fill=tk.BOTH, expand=True)
 
     def add_transaction(self):
+        if self.budget == 0:
+            messagebox.showerror("Budget Not Set", "Please set your monthly budget before adding transactions.")
+            return
+
         desc = self.desc_entry.get().strip()
         amount = self.amount_entry.get().strip()
 
@@ -110,6 +113,7 @@ class FinanceTrackerApp:
         self.transactions.append({"description": desc, "amount": amount, "category": category, "month": month})
         self.update_table()
         self.clear_inputs()
+
 
     def update_table(self):
         # Clear the table
@@ -191,8 +195,6 @@ class FinanceTrackerApp:
         # Display total expense for the month
         total_label = tk.Label(self.graph_area, text=f"Total Expense for {selected_month}: {total_expense:.2f}", font=("Arial", 12, "bold"))
         total_label.pack(pady=10)
-
-
 
 if __name__ == "__main__":
     root = tk.Tk()
